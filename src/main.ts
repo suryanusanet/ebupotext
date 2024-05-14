@@ -74,6 +74,8 @@ async function downloadFile(url: string, destination: string): Promise<void> {
     const response = await axios.get(url, {
       headers: { Cookie: authCookie },
       responseType: 'stream',
+      maxRedirects: 0,
+      validateStatus: (status) => status >= 200 && status < 400,
     })
 
     // If the response status is not OK, refresh the cookie and retry once
@@ -82,6 +84,8 @@ async function downloadFile(url: string, destination: string): Promise<void> {
       const retryResponse = await axios.get(url, {
         headers: { Cookie: authCookie },
         responseType: 'stream',
+        maxRedirects: 0,
+        validateStatus: (status) => status >= 200 && status < 400,
       })
 
       if (retryResponse.status !== 200) {

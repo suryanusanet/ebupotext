@@ -1,5 +1,6 @@
 // Imports and Environment Configuration
 import Fastify, { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
+import cors from 'fastify-cors'
 import fs from 'fs'
 import { promises as fsPromises } from 'fs'
 import { config } from 'dotenv'
@@ -7,10 +8,7 @@ import path from 'path'
 import os from 'os'
 import pdfParse from 'pdf-parse'
 import axios from 'axios'
-import {
-  extractEbupot,
-  getEbupotFormatedSignature,
-} from './ebupot'
+import { extractEbupot, getEbupotFormatedSignature } from './ebupot'
 
 // Load and verify environment variables
 config()
@@ -119,6 +117,12 @@ async function downloadFile(url: string, destination: string): Promise<void> {
 
 // Fastify Setup and Routes
 const server = Fastify({ logger: true })
+
+// Register CORS plugin
+server.register(cors, {
+  origin: '*', // Allow all origins.
+  methods: ['GET', 'POST'],
+})
 
 async function authenticateRequest(
   request: FastifyRequest,

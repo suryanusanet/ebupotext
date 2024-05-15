@@ -1,6 +1,6 @@
 // Imports and Environment Configuration
 import Fastify, { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
-import cors from 'fastify-cors'
+import cors from '@fastify/cors'
 import fs from 'fs'
 import { promises as fsPromises } from 'fs'
 import { config } from 'dotenv'

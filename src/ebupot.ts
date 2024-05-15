@@ -286,6 +286,8 @@ function extractBFormatedEbupot(data: string) {
 function extractCFormatedEbupot(data: string) {
   const p = data.indexOf('Bukti Pemotongan ini.')
   const s = data.substring(p)
+  const bufferLines = []
+  let b7 = false
   const ret: EbupotExtractedData = {
     h1: '',
     b1: '',
@@ -324,32 +326,39 @@ function extractCFormatedEbupot(data: string) {
     }
     if (state == 8) {
       state = 9
-      let i = line.length - 1
-      let date = []
-      while (i > 0) {
-        if (line[i] !== ' ') {
-          date.push(line[i])
-        }
-        if (date.length >= 8) {
-          break
-        }
-        i--
-      }
-      date.reverse()
-      ret.b8.push(line.substring(0, i))
-      ret.b8.push(ddmmyyyyToIso(date.join('')))
+      bufferLines.push(line)
       continue
     }
     if (state == 9) {
+      const npwp = line.replace(/\s/g, '')
+      if (/^\d+$/.test(npwp) && npwp.length == 15) {
+        state = 11
+        ret.c1 = npwp
+        continue
+      }
       state = 10
-      ret.c1 = line.replace(/\s/g, '')
+      bufferLines.push(line)
+      b7 = true
       continue
     }
     if (state == 10) {
       state = 11
+      ret.c1 = line.replace(/\s/g, '')
       continue
     }
     if (state == 11) {
+      state = 12
+      if (b7) {
+        ret.b7.push(bufferLines[0])
+        const [doc, date] = splitDocDate(bufferLines[1])
+        ret.b7.push(doc, date)
+        continue
+      }
+      const [doc, date] = splitDocDate(bufferLines[0])
+      ret.b8.push(doc, date)
+      continue
+    }
+    if (state == 12) {
       ret.c3 = ddmmyyyyToIso(line.replace(/\s/g, ''))
       break
     }
@@ -375,4 +384,20 @@ function ddmmyyyyToIso(ddmmyyyy: string) {
   const month = ddmmyyyy.substring(2, 4)
   const day = ddmmyyyy.substring(0, 2)
   return `${year}-${month}-${day}`
+}
+
+function splitDocDate(line: string) {
+  let i = line.length - 1
+  let date = []
+  while (i > 0) {
+    if (line[i] !== ' ') {
+      date.push(line[i])
+    }
+    if (date.length >= 8) {
+      break
+    }
+    i--
+  }
+  date.reverse()
+  return [line.substring(0, i), ddmmyyyyToIso(date.join(''))]
 }

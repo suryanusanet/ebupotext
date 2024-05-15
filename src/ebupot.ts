@@ -58,7 +58,7 @@ function extractAFormatedEbupot(data: string) {
     if (state == 3) {
       state = 4
       if (line === '') {
-        ret.b7.push('', '')
+        ret.b7.pop()
         continue
       }
       const docName = line.slice(0, -8)
@@ -74,35 +74,35 @@ function extractAFormatedEbupot(data: string) {
       continue
     }
     if (state == 5) {
-      ret.b8.push(line)
-      state = 6
-      continue
-    }
-    if (state == 6) {
       if (line === 'B.9') {
-        ret.b8.push(buffer.length == 0 ? '' : ddmmyyyyToIso(buffer))
+        state = 6
+        if (buffer.length == 0) {
+          continue
+        }
+        const docName = buffer.slice(0, -8)
+        const docDate = buffer.slice(-8)
+        ret.b8.push(docName, ddmmyyyyToIso(docDate))
         buffer = ''
-        state = 7
         continue
       }
       buffer = `${buffer}${line}`
       continue
     }
-    if (state == 7) {
+    if (state == 6) {
       if (line === 'C.1') {
+        state = 7
+      }
+      continue
+    }
+    if (state == 7) {
+      if (line === ':NPWP') {
         state = 8
       }
       continue
     }
     if (state == 8) {
-      if (line === ':NPWP') {
-        state = 9
-      }
-      continue
-    }
-    if (state == 9) {
       if (line === 'Nama Wajib PajakC.2:') {
-        state = 10
+        state = 9
         ret.c1 = buffer
         buffer = ''
         continue
@@ -110,15 +110,15 @@ function extractAFormatedEbupot(data: string) {
       buffer = `${buffer}${line}`
       continue
     }
-    if (state == 10) {
+    if (state == 9) {
       if (line === 'mmyyyy') {
-        state = 11
+        state = 10
       }
       continue
     }
-    if (state == 11) {
+    if (state == 10) {
       if (line === 'C.4') {
-        state = 12
+        state = 11
         ret.c3 = ddmmyyyyToIso(buffer)
         buffer = ''
         continue
@@ -126,25 +126,25 @@ function extractAFormatedEbupot(data: string) {
       buffer = `${buffer}${line}`
       continue
     }
-    if (state == 12) {
+    if (state == 11) {
       if (line.indexOf('Bukti Pemotongan ini.') > -1) {
-        state = 13
+        state = 12
       }
       continue
     }
-    if (state == 13) {
+    if (state == 12) {
       ret.h1 = line
-      state = 14
+      state = 13
       continue
     }
-    if (state == 14) {
+    if (state == 13) {
       if (line.length > 4) {
-        state = 15
+        state = 14
         ret.b1 = line
       }
       continue
     }
-    if (state == 15) {
+    if (state == 14) {
       ret.b2 = line
       break
     }

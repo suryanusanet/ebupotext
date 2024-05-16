@@ -238,21 +238,21 @@ function extractBFormatedEbupot(data: string) {
     if (state == 10) {
       state = 11
       const npwp = [
-        line[0],
-        line[14],
+        line[7],
         line[11],
-        line[12],
-        line[13],
-        line[5],
+        line[14],
         line[9],
         line[3],
+        line[5],
+        line[12],
+        line[13],
         line[1],
-        line[4],
+        line[6],
         line[2],
         line[10],
-        line[6],
-        line[7],
+        line[0],
         line[8],
+        line[4],
       ]
       ret.c1 = npwp.join('')
       continue

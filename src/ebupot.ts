@@ -11,6 +11,9 @@ type EbupotExtractedData = {
 
 export function getEbupotFormatedSignature(data: string) {
   if (data.indexOf('FORMULIR BPBS\nH.1\nH.2\nH.3') > -1) {
+    if (data.indexOf('A.3  NITKU') > -1) {
+      return 'E'
+    }
     return 'A'
   }
   if (data.indexOf('FORMULIR BPBS\nBukti Pemotongan') > -1) {
@@ -457,6 +460,124 @@ function extractDFormatedEbupot(data: string) {
   return ret
 }
 
+function extractEFormatedEbupot(data: string) {
+  const p = data.indexOf('Dokumen Referensi')
+  const s = data.substring(p)
+  const ret: EbupotExtractedData = {
+    h1: '',
+    b1: '',
+    b2: '',
+    b7: [],
+    b8: [],
+    c1: '',
+    c4: '',
+  }
+
+  let buffer = ''
+  let state = 0
+  for (const line of s.split(/\n/)) {
+    if (state == 0) {
+      state = 1
+      continue
+    }
+    if (state == 1) {
+      ret.b7.push(line)
+      state = 2
+      continue
+    }
+    if (state == 2) {
+      if (line === 'ddmmyyyy') {
+        state = 3
+      }
+      continue
+    }
+    if (state == 3) {
+      state = 4
+      if (line === '') {
+        ret.b7.pop()
+        continue
+      }
+      const docName = line.slice(0, -8)
+      const docDate = line.slice(-8)
+      ret.b7.push(docName)
+      ret.b7.push(ddmmyyyyToIso(docDate))
+      continue
+    }
+    if (state == 4) {
+      if (line == 'Tanggal') {
+        state = 5
+      }
+      continue
+    }
+    if (state == 5) {
+      if (line === 'B.9') {
+        state = 6
+        if (buffer.length == 0) {
+          continue
+        }
+        const docName = buffer.slice(0, -8)
+        const docDate = buffer.slice(-8)
+        ret.b8.push(docName, ddmmyyyyToIso(docDate))
+        buffer = ''
+        continue
+      }
+      buffer = `${buffer}${line}`
+      continue
+    }
+    if (state == 6) {
+      if (line === 'C.1') {
+        state = 7
+      }
+      continue
+    }
+    if (state == 7) {
+      if (line === 'NPWP') {
+        state = 8
+      }
+      continue
+    }
+    if (state == 8) {
+      state = 9
+      ret.c1 = line.replace(/\s/g, '')
+      continue
+    }
+    if (state == 9) {
+      if (line === 'mmyyyy') {
+        state = 10
+      }
+      continue
+    }
+    if (state == 10) {
+      state = 11
+      ret.c4 = ddmmyyyyToIso(line)
+      continue
+    }
+    if (state == 11) {
+      if (line.indexOf('Bukti Pemotongan ini.') > -1) {
+        state = 12
+      }
+      continue
+    }
+    if (state == 12) {
+      ret.h1 = line
+      state = 13
+      continue
+    }
+    if (state == 13) {
+      if (line.length > 4) {
+        state = 14
+        ret.b1 = line
+      }
+      continue
+    }
+    if (state == 14) {
+      ret.b2 = line
+      break
+    }
+  }
+  return ret
+}
+
 export function extractEbupot(data: string, format: string) {
   switch (format) {
     case 'A':
@@ -467,6 +588,8 @@ export function extractEbupot(data: string, format: string) {
       return extractCFormatedEbupot(data)
     case 'D':
       return extractDFormatedEbupot(data)
+    case 'E':
+      return extractEFormatedEbupot(data)
     default:
       return {}
   }

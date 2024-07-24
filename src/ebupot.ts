@@ -17,7 +17,7 @@ export function getEbupotFormatedSignature(data: string) {
     return 'B'
   }
   if (data.indexOf('FORMULIR BPBS\nH.1\nNOMOR') > -1) {
-    if (data.indexOf('A.3  NITKU')) {
+    if (data.indexOf('A.3  NITKU') > -1) {
       return 'D'
     }
     return 'C'

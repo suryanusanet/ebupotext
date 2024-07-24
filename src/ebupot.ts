@@ -5,7 +5,8 @@ type EbupotExtractedData = {
   b7: string[]
   b8: string[]
   c1: string
-  c3: string
+  c3?: string
+  c4?: string
 }
 
 export function getEbupotFormatedSignature(data: string) {
@@ -16,6 +17,9 @@ export function getEbupotFormatedSignature(data: string) {
     return 'B'
   }
   if (data.indexOf('FORMULIR BPBS\nH.1\nNOMOR') > -1) {
+    if (data.indexOf('A.3  NITKU')) {
+      return 'D'
+    }
     return 'C'
   }
   if (data.trim().length == 0) {
@@ -366,6 +370,93 @@ function extractCFormatedEbupot(data: string) {
   return ret
 }
 
+function extractDFormatedEbupot(data: string) {
+  const p = data.indexOf('Bukti Pemotongan ini.')
+  const s = data.substring(p)
+  const bufferLines = []
+  let b7 = false
+  const ret: EbupotExtractedData = {
+    h1: '',
+    b1: '',
+    b2: '',
+    b7: [],
+    b8: [],
+    c1: '',
+    c4: '',
+  }
+
+  let state = 0
+  for (const line of s.split(/\n/)) {
+    if (state == 0) {
+      state = 1
+      continue
+    }
+    if (state == 1) {
+      ret.h1 = line.replace(/\s/g, '')
+      state = 2
+      continue
+    }
+    if (state < 7) {
+      state += 1
+      continue
+    }
+    if (state == 7) {
+      state = 8
+      const p = line.indexOf('-')
+      ret.b1 = line.substring(0, p + 5)
+      ret.b2 = line.substring(p + 5, p + 14)
+      continue
+    }
+    if (state == 8) {
+      state = 9
+      continue
+    }
+    if (state == 9) {
+      state = 10
+      bufferLines.push(line)
+      continue
+    }
+    if (state == 10) {
+      const npwp = line.replace(/\s/g, '')
+      if (/^\d+$/.test(npwp) && npwp.length == 15) {
+        state = 12
+        ret.c1 = npwp
+        continue
+      }
+      state = 11
+      bufferLines.push(line)
+      b7 = true
+      continue
+    }
+    if (state == 11) {
+      state = 12
+      ret.c1 = line.replace(/\s/g, '')
+      continue
+    }
+    if (state == 12) {
+      state = 13
+      if (b7) {
+        ret.b7.push(bufferLines[0])
+        const [doc, date] = splitDocDate(bufferLines[1])
+        ret.b7.push(doc, date)
+        continue
+      }
+      const [doc, date] = splitDocDate(bufferLines[0])
+      ret.b8.push(doc, date)
+      continue
+    }
+    if (state == 13) {
+      state = 14
+      continue
+    }
+    if (state == 14) {
+      ret.c4 = ddmmyyyyToIso(line.replace(/\s/g, ''))
+      break
+    }
+  }
+  return ret
+}
+
 export function extractEbupot(data: string, format: string) {
   switch (format) {
     case 'A':
@@ -374,6 +465,8 @@ export function extractEbupot(data: string, format: string) {
       return extractBFormatedEbupot(data)
     case 'C':
       return extractCFormatedEbupot(data)
+    case 'D':
+      return extractDFormatedEbupot(data)
     default:
       return {}
   }

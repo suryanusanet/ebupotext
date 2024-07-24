@@ -418,7 +418,7 @@ function extractDFormatedEbupot(data: string) {
     }
     if (state == 10) {
       const npwp = line.replace(/\s/g, '')
-      if (/^\d+$/.test(npwp) && npwp.length == 15) {
+      if (/^\d+(\/\d+)?$/.test(npwp) && npwp.length >= 15) {
         state = 12
         ret.c1 = npwp
         continue

@@ -57,38 +57,40 @@ function extractAFormatedEbupot(data: string) {
       continue
     }
     if (state == 2) {
-      if (line === 'yyyy') {
-        state = 3
-      }
-      continue
-    }
-    if (state == 3) {
-      state = 4
-      if (line === '') {
-        ret.b7.pop()
+      if (['Nama Dokumen', 'Tanggal', 'dd', 'mm', 'yyyy'].includes(line)) {
         continue
       }
-      const docName = line.slice(0, -8)
-      const docDate = line.slice(-8)
-      ret.b7.push(docName)
-      ret.b7.push(ddmmyyyyToIso(docDate))
+      if (line === 'B.8') {
+        state = 3
+        if (buffer === '') {
+          ret.b7.pop()
+          continue
+        }
+        const [docName, docDate] = splitDocDate(buffer)
+        ret.b7.push(docName.startsWith('Tanggal') ? docName.substring(8) : docName)
+        ret.b7.push(docDate)
+        buffer = ''
+        continue
+      }
+      buffer = `${buffer}${line}`
       continue
     }
-    if (state == 4) {
-      if (line == 'Tanggal') {
-        state = 5
-      }
+    if (state <= 4) { // skip next two lines
+      state++
       continue
     }
     if (state == 5) {
+      if (['Tanggal', 'dd', 'mm', 'yyyy'].includes(line)) {
+        continue
+      }
       if (line === 'B.9') {
         state = 6
-        if (buffer.length == 0) {
+        if (buffer === '') {
           continue
         }
-        const docName = buffer.slice(0, -8)
-        const docDate = buffer.slice(-8)
-        ret.b8.push(docName, ddmmyyyyToIso(docDate))
+        const [docName, docDate] = splitDocDate(buffer)
+        ret.b8.push(docName.startsWith('Tanggal') ? docName.substring(8) : docName)
+        ret.b8.push(docDate)
         buffer = ''
         continue
       }

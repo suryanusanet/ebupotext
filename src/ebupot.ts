@@ -25,6 +25,9 @@ export function getEbupotFormatedSignature(data: string) {
     }
     return 'C'
   }
+  if (data.indexOf('UNIFIKASI BERFORMAT STANDAR') > -1) {
+    return 'F'
+  }
   if (data.trim().length == 0) {
     return 'Z'
   }
@@ -580,6 +583,99 @@ function extractEFormatedEbupot(data: string) {
   return ret
 }
 
+function extractFFormatedEbupot(data: string) {
+  const monthMap: Record<string, string> = {
+    Januari: '01',
+    Februari: '02',
+    Maret: '03',
+    April: '04',
+    Mei: '05',
+    Juni: '06',
+    Juli: '07',
+    Agustus: '08',
+    September: '09',
+    Oktober: '10',
+    November: '11',
+    Desember: '12',
+  }
+
+  const p = data.indexOf('PEMUNGUTAN PPh\nPEMUNGUTAN\n')
+  const s = data.substring(p)
+  const ret: EbupotExtractedData = {
+    h1: '',
+    b1: '',
+    b2: '',
+    b7: [],
+    b8: [],
+    c1: '',
+    c3: '',
+    c4: '',
+  }
+
+  let state = 0
+  for (const line of s.split(/\n/)) {
+    console.log(`state: ${state}\nline: ${line}`)
+    if (state < 2) {
+      state += 1
+      continue
+    }
+    if (state == 2) {
+      const p = line.indexOf('-')
+      ret.h1 = line.substring(0, p - 2)
+      ret.b1 = line.substring(p - 2, p + 5)
+      state = 3
+      continue
+    }
+    if (state == 3) {
+      if (line === 'B.4B.5B.6B.7') {
+        state = 4
+      }
+      continue
+    }
+    if (state == 4) {
+      const match = line.match(/[0-9-]+/)
+      ret.b2 = match ? match[0] : ''
+      state = 5
+      continue
+    }
+    if (state == 5) {
+      if (line.startsWith('Jenis Dokumen:')) {
+        ret.b7.push('')
+        const p = line.indexOf('Tanggal')
+        ret.b7.push(line.substring(14, p))
+        const [dd, month, yyyy] = line.substring(p + 10).split(' ')
+        const mm = monthMap[month]
+        ret.b7.push(`${yyyy}-${mm}-${dd}`)
+        state = 6
+      }
+      continue
+    }
+    if (state == 6) {
+      if (line.startsWith('B.9 Nomor Dokumen')) {
+        ret.b7[0] = line.substring(18)
+        state = 7
+      }
+      continue
+    }
+    if (state == 7) {
+      if (line.startsWith('C.1NPWP / NIK')) {
+        ret.c1 = line.substring(14)
+        state = 8
+      }
+      continue
+    }
+    if (state == 8) {
+      if (line.startsWith('C.4TANGGAL')) {
+        const [dd, month, yyyy] = line.substring(11).split(' ')
+        const mm = monthMap[month]
+        ret.c4 = `${yyyy}-${mm}-${dd}`
+        break
+      }
+    }
+  }
+  return ret
+}
+
 export function extractEbupot(data: string, format: string) {
   switch (format) {
     case 'A':
@@ -592,6 +688,8 @@ export function extractEbupot(data: string, format: string) {
       return extractDFormatedEbupot(data)
     case 'E':
       return extractEFormatedEbupot(data)
+    case 'F':
+      return extractFFormatedEbupot(data)
     default:
       return {}
   }

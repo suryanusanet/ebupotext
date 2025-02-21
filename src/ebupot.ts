@@ -614,7 +614,6 @@ function extractFFormatedEbupot(data: string) {
 
   let state = 0
   for (const line of s.split(/\n/)) {
-    console.log(`state: ${state}\nline: ${line}`)
     if (state < 2) {
       state += 1
       continue

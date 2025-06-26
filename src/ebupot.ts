@@ -7,6 +7,8 @@ type EbupotExtractedData = {
   c1: string
   c3?: string
   c4?: string
+  dpp?: string
+  pph?: string
 }
 
 export function getEbupotFormatedSignature(data: string) {
@@ -609,6 +611,8 @@ function extractFFormatedEbupot(data: string) {
     b8: [],
     c1: '',
     c4: '',
+    dpp: '',
+    pph: ''
   }
 
   let state = 0

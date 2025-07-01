@@ -7,6 +7,7 @@ import { config } from 'dotenv'
 import path from 'path'
 import os from 'os'
 import pdfParse from 'pdf-parse'
+import { PdfReader } from "pdfreader"
 import axios from 'axios'
 import { extractEbupot, getEbupotFormatedSignature } from './ebupot'
 
@@ -147,7 +148,35 @@ async function handleMainRoute(
     const pdfBuffer = await fsPromises.readFile(tempFilePath)
     const pdfData = await pdfParse(pdfBuffer)
     const format = getEbupotFormatedSignature(pdfData.text)
-    const data = extractEbupot(pdfData.text, format)
+    const data: any = extractEbupot(pdfData.text, format)
+    if (format == 'F') {
+      let dpp = "", pph = ""
+      await new Promise((resolve, reject) => {
+        let n = 0, i =0
+        new PdfReader().parseFileItems(tempFilePath, (err, item) => {
+          if (item?.text != undefined) {
+            if (item.text.trim() == 'B.7') {
+              i = n
+            }
+
+            if (n == (i + 3)) {
+              dpp = item.text.trim()
+            }
+
+            if (n == (i + 5)) {
+              pph = item.text.trim()
+            }
+            n++
+          }
+
+          if (!item) {
+            resolve([dpp, pph])
+          }
+        })
+      })
+      data.dpp = dpp
+      data.pph = pph
+    }
     reply.send({ format, data })
   } catch (error: any) {
     console.error(`Download or PDF parsing failed: ${error.message}`)
